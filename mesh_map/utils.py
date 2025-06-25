@@ -7,28 +7,28 @@ from ..log import log
 
 
 def find_next_head(data, data_start):
-    """查找下一个物体头部"""
-    # 记录传入的 data_start
+    """Find the next object header."""
+    # Record incoming data_start
     temp_data_start = data_start
     log.debug(">>>>>>>>>>>>>>>>>>>>>>>> : %s", hex(data_start))
     data_len = len(data)
-    log.debug("DATA大小: %s", hex(data_len))
+    log.debug("DATA size: %s", hex(data_len))
 
     while True:
         if data_start >= data_len:
             log.debug(
-                "<<<<<<<<<<<<<<<<<<<<<<<!!! 没有找到下一个物体头部,开始查找地址: %s",
+                "<<<<<<<<<<<<<<<<<<<<<<<!!! Next object header not found, start: %s",
                 hex(temp_data_start),
             )
             return None
 
-        # 读取下一个值
+        # Read next value
         # log.debug("data_start: %s",hex(data_start))
         tag_ff = data[data_start: data_start + 1][0]
         # log.debug("tag_ff: %s", hex(tag_ff))
         # data_start += 1
         if tag_ff == 0xFF:
-            if data_start + 4 < len(data):  # 确保有足够的数据来解包一个整数
+            if data_start + 4 < len(data):  # ensure enough bytes to unpack an int
                 tag_4ff = struct.unpack_from("<I", data, data_start)[0]
                 # log.debug("tag_4ff: %s",hex(tag_4ff))
                 if tag_4ff != 0xFFFFFFFF:
@@ -38,121 +38,119 @@ def find_next_head(data, data_start):
                     # log.debug("tag_4ff: %s",hex(tag_4ff))
                     data_start -= 0x30 + 0x1D
                     log.debug(
-                        "<<<<<<<<<<<<<<<<<<<<<<< 找到下一个物体第一个变换矩阵结尾 %s",
+                        "<<<<<<<<<<<<<<<<<<<<<<< Found next object first matrix end %s",
                         hex(data_start),
                     )
                     return data_start
             else:
-                log.debug("数据不足，无法读取")
-                return None  # 或者根据实际情况返回合适的值
+                log.debug("Insufficient data to read")
+                return None
         else:
             data_start += 1
             # log.debug("!= 0xff : %s",hex(data_start))
 
 
 def read_map_first_head(self, data):
-    """读取地图第一个头部信息"""
-    log.debug(">>> 开始读取地图第一个头部信息")
-    # 读取位置
+    """Read the first map header."""
+    log.debug(">>> Begin reading first map header")
+    # Read position
     data_index = 0
 
-    # 确保有足够的数据 216CC5 287390
-    # 29DEBC
-    # 衔接地址 1BA288
+    # Ensure enough data
     if len(data) < 24:
         log.debug("Error: Not enough data")
         return
 
-    # 读取相机位置?
+    # Camera position?
     x1, y1, z1, x2, y2, z2 = struct.unpack_from("<ffffff", data)
     log.debug("Camera 1 Position: x1= %s, y1=%s, z1=%s", x1, y1, z1)
     log.debug("Camera 2 Position: x2=%s, y2=%s, z2=%s", x2, y2, z2)
 
-    # 更新读取位置
+    # Advance index
     data_index += 24
 
     return data_index
 
 
-# 定义读取头部信息函数
+# Read header helper
 def read_head(self, data, start_index):
-    """读取头部信息"""
-    log.debug(">>> 开始读取头部信息")
+    """Parse header information."""
+    log.debug(">>> Begin reading header")
 
-    # 检查是否有足够的字节数进行解包
+    # Ensure there are enough bytes to unpack
     if len(data) < start_index + 29:
-        log.debug("! 头部信息解析失败: 不足的字节数在偏移量 %s ", start_index)
-        # self.report({"ERROR"}, "头部信息解析失败")
+        log.debug("! Failed to parse header: insufficient bytes at %s", start_index)
+        # self.report({"ERROR"}, "Header parse failed")
         traceback.print_exc()
         # return {"CANCELLED"}
         return None
 
-    # 文件中包含网格物体数量(仅头一个文件有用)
+    # Number of mesh objects (first file only)
     mesh_obj_number = struct.unpack_from("<I", data, start_index)[0]
-    # 本物体面数据组数量
+    # Face group count
     mesh_face_group_number = struct.unpack_from("<I", data, start_index + 4)[0]
-    # 本网格变换矩阵数量
+    # Matrix count
     mesh_matrices_number = struct.unpack_from("<I", data, start_index + 8)[0]
-    # 4个字节00标志（注释掉）
+    # 4-byte zero flag (unused)
     # zeros_tag = struct.unpack_from("<I", data, 36)[0]
-    # 1个字节01标志（注释掉）
+    # 1-byte 01 flag (unused)
     # zeroone_tag = struct.unpack_from("<B", data, 48)[0]
-    # 本网格字节总数
+    # Total bytes of this mesh
     mesh_byte_size = struct.unpack_from("<I", data, start_index + 25)[0]
 
-    # 打印头部信息
+    # Print header info
     log.debug(
-        "<<< 网格物体数量: %s 本物体面数据组数量 %s 本网格变换矩阵数量: %s 本网格字节总数: %s",
+        "<<< mesh count: %s face groups: %s matrices: %s bytes: %s",
         hex(mesh_obj_number), hex(mesh_face_group_number), hex(mesh_matrices_number), hex(mesh_byte_size)
     )
 
-    # 返回文件中包含网格物体数量, 本网格变换矩阵数量, 本网格字节总数
+    # Return mesh count, matrix count and byte size
     return mesh_obj_number, mesh_matrices_number, mesh_byte_size
 
 
-# 定义解析顶点数据函数
+# Parse vertex data
 def read_vertices(self, vertices_data, mesh_matrices_number, mesh_byte_size):
-    """解析顶点数据"""
-    log.debug(">>> 开始解析顶点数据")
-    # 顶点数据
+    """Parse vertex data."""
+    log.debug(">>> Begin parsing vertex data")
+    # Vertex data
     vertices = []
-    # 法线数据
+    # Normal data
     normals = []
-    # UV 坐标数据
+    # UV coordinate data
     uvs = []
 
-    # 数据块的大小 (0x34)
+    # Block size (0x34)
     block_size = int(mesh_byte_size / mesh_matrices_number)
     if block_size != 52:
-        log.debug("! 数据块的大小计算失败: %s", block_size)
-        # self.report({"ERROR"}, "数据块的大小计算失败")
+        log.debug("! Failed to compute block size: %s", block_size)
+        # self.report({"ERROR"}, "Block size calculation failed")
         traceback.print_exc()
         # return {"CANCELLED"}
         return None
 
-    log.debug("> 数据块的大小: %s", hex(block_size))
+    log.debug("> Block size: %s", hex(block_size))
 
-    # 解析顶点数据
+    # Parse vertex data
     try:
         for mni in range(mesh_matrices_number):
-            # 计算当前块的起始位置
+            # Calculate current block start
             mniv = block_size * mni
-            # 确保有足够的字节进行解包
+            # Ensure enough bytes to unpack
             if mniv + block_size <= mesh_byte_size:
                 vx = struct.unpack_from("f", vertices_data, mniv)[0]
                 vy = struct.unpack_from("f", vertices_data, mniv + 4)[0]
                 vz = struct.unpack_from("f", vertices_data, mniv + 8)[0]
-                # 将顶点添加到顶点列表
+                # Append vertex
                 vertices.append((vx, vy, vz))
 
-                # 读取法线数据
+                # Read normals
                 nx = tools.read_half_float(vertices_data, mniv + 0x0c)
                 ny = tools.read_half_float(vertices_data, mniv + 0x0e)
                 nz = tools.read_half_float(vertices_data, mniv + 0x10)
                 normals.append((nx, ny, nz))
                 # log.debug(">> 读取法线数据: %s , %s , %s", nx, ny, nz)
 
-                # 读取UV坐标
+                # Read UV coordinates
                 uv_start = mniv + block_size - 0x10
                 # log.debug(">> uv_start: %s , mniv : %s ", uv_start, mniv)
                 u = tools.read_half_float(vertices_data, uv_start)
@@ -160,16 +158,16 @@ def read_vertices(self, vertices_data, mesh_matrices_number, mesh_byte_size):
                 uvs.append((u, 1 - v))
                 # log.debug(">> 读取UV坐标: %s , %s ", u, 1 - v)
             else:
-                log.debug("! 顶点数据解析失败: 不足的字节数在偏移量 %s", mniv)
+                log.debug("! Vertex data parse failed: insufficient bytes at %s", mniv)
                 break
     except Exception as e:
-        log.debug("! 顶点数据解析失败: %s", e)
+        log.debug("! Vertex data parse failed: %s", e)
         # self.report({"ERROR"}, f"顶点数据解析失败 : {e}")
         traceback.print_exc()
         # return {"CANCELLED"}
         return None
 
-    log.debug("<<< 顶点数据解析完成: %s 组", len(vertices))
+    log.debug("<<< Parsed %s vertex groups", len(vertices))
 
     return vertices, normals, uvs
 

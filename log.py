@@ -3,7 +3,7 @@ import logging
 
 
 def setup_logger():
-    """配置日志"""
+    """Configure logging."""
     logger = logging.getLogger("PMT")
     if not logger.hasHandlers():
         logger.setLevel(logging.DEBUG)
@@ -17,4 +17,4 @@ def setup_logger():
 
 
 log = setup_logger()
-""" PMT 日志实例 """
+"""PMT log instance."""

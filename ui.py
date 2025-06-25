@@ -3,7 +3,7 @@ import bpy
 
 
 class ImportPanel(bpy.types.Panel):
-    """导入面板"""
+    """Import panel."""
 
     bl_label = "PDE Model Tools"
     bl_idname = "PDEIMPORT_PT_import_panel"
@@ -13,11 +13,11 @@ class ImportPanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        layout.label(text="导入MESH")
-        layout.operator("import.mesh_prop", text="道具模型")
-        layout.operator("import.mesh_map", text="地图模型")
-        layout.operator("import.wcm_mesh", text="武器和人物模型")
-        layout.label(text="导入ANIM")
-        layout.operator("import.anim", text="导入动画", icon="IMPORT")
-        layout.label(text="导入SKEL")
-        layout.operator("import.skel", text="导入骨骼", icon="IMPORT")
+        layout.label(text="Import MESH")
+        layout.operator("import.mesh_prop", text="Prop Model")
+        layout.operator("import.mesh_map", text="Map Model")
+        layout.operator("import.wcm_mesh", text="Weapon/Character Model")
+        layout.label(text="Import ANIM")
+        layout.operator("import.anim", text="Import Animation", icon="IMPORT")
+        layout.label(text="Import SKEL")
+        layout.operator("import.skel", text="Import Skeleton", icon="IMPORT")
