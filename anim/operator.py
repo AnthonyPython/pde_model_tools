@@ -1,13 +1,12 @@
 # anim\operator.py
 import os
-import re
 import struct
 
 import bmesh
 import bpy
-from mathutils import Quaternion
 
 from ..log import log
+from .utils import is_valid_group_name, quat_to_eul
 
 
 # 顶义操作类
@@ -150,7 +149,7 @@ class ImportAnimClass(bpy.types.Operator):
                              group_eoffset + 4: group_eoffset + 4 + group_name_length
                              ].decode("utf-8")
                 # 检查 名称是否合法
-                if not self.is_valid_group_name(group_name):
+                if not is_valid_group_name(group_name):
                     log.debug("!名称不合法: %s", group_name)
                     break
                 log.debug("顶点组名字:%s", group_name)
@@ -266,28 +265,3 @@ class ImportAnimClass(bpy.types.Operator):
         log.debug("完成 读取到: %s 个顶点组帧数据", len(vertex_groups))
         # 返回顶点组帧数据
         return vertex_groups
-
-    # 将四元数转换为欧拉角
-    def quat_to_eul(self, quat):
-        quat_obj = Quaternion(quat)
-        euler_obj = quat_obj.to_euler("XYZ")
-        return euler_obj
-
-    # 检查名称是否合法
-    def is_valid_group_name(self, now_group_name):
-        # 检查是否为空
-        if not now_group_name:
-            log.debug("!名称为空。%s", format(now_group_name))
-            return False
-
-        # 检查是否为字符串
-        if not isinstance(now_group_name, str):
-            log.debug("!不是字符串 %s", format(now_group_name))
-            return False
-
-        # 使用正则表达式匹配只包含a-z, A-Z, 且不以数字开头，包含0-9, _的字符串
-        if re.match("^[a-zA-Z_][a-zA-Z0-9_]*$", now_group_name):
-            return True
-        else:
-            log.debug("包含非法字符或以数字开头! %s".format(now_group_name))
-            return False
