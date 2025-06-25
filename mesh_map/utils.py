@@ -172,85 +172,85 @@ def read_vertices(self, vertices_data, mesh_matrices_number, mesh_byte_size):
     return vertices, normals, uvs
 
 
-# 定义解析面数据函数
+# Parse face data
 def read_faces(self, faces_data_block, index_length):
-    """解析面数据"""
-    log.debug(">>> 开始解析面数据 %s", index_length)
+    """Parse face data"""
+    log.debug(">>> Begin parsing face data %s", index_length)
     faces = []
     try:
-        # 确保有足够的字节进行解包
+        # Ensure there are enough bytes to unpack
         for i in range(0, index_length, 12):
             f0 = struct.unpack_from("H", faces_data_block, i)[0]
             f1 = struct.unpack_from("H", faces_data_block, i + 4)[0]
             f2 = struct.unpack_from("H", faces_data_block, i + 8)[0]
             faces.append((f0, f1, f2))
-            # log.debug("> 解析面: %s -> %s %s %s",i, f0, f1, f2)
+            # log.debug("> Parsing face: %s -> %s %s %s", i, f0, f1, f2)
     except Exception as e:
-        log.debug("! 面数据解析失败: %s", e)
-        # self.report({"ERROR"}, f"面数据解析失败 : {e}")
+        log.debug("! Face data parse failed: %s", e)
+        # self.report({"ERROR"}, f"Face data parse failed: {e}")
         traceback.print_exc()
         # return {"CANCELLED"}
         return None
 
-    log.debug("<<< 面数据读取完毕: %s 组", len(faces))
+    log.debug("<<< Finished reading %s faces", len(faces))
 
     return faces
 
 
-# 定义分割网格数据函数
+# Split mesh data
 def split_mesh(self, data):
-    """分割网格数据"""
-    log.debug(">>> 开始分割网格数据")
-    # 数据起始位置
+    """Split mesh data"""
+    log.debug(">>> Begin splitting mesh data")
+    # Data start offset
     data_start = 0
-    # 网格对象
+    # Mesh objects
     mesh_obj = []
 
-    # 读取动态头部
+    # Read dynamic header
     data_index = read_map_first_head(self, data)
-    # 修正数据起始位置
+    # Adjust data start position
     data_start = data_index
-    log.debug("> fix数据起始位置: %s", hex(data_start))
+    log.debug("> fix data start: %s", hex(data_start))
 
-    # 临时计数
+    # Temporary counter
     temp_num = 0
 
     try:
         while True:
             temp_num += 1
 
-            # 读取头部信息
+            # Read header information
             read_head_temp = read_head(self, data, data_start)
-            # 判断是否读取失败
+            # Check for read failure
             if read_head_temp is None:
-                log.debug("! 读取头部信息失败")
+                log.debug("! Failed to read header")
                 # return mesh_obj
                 break
-            # 解析头部信息 -> 文件中包含网格物体数量, 本网格变换矩阵数量, 本网格字节总数
+            # Parsed header -> mesh object count, matrix count and byte size
             mesh_obj_number, mesh_matrices_number, mesh_byte_size = read_head_temp
 
-            # 获取顶点数据长度
+            # Get vertex data length
             vertices_data = data[data_start + 0x1D: data_start + 0x1D + mesh_byte_size]
-            log.debug("> 获取顶点数据长度: %s", hex(len(vertices_data)))
+            log.debug("> Vertex data length: %s", hex(len(vertices_data)))
             if len(vertices_data) <= 0:
-                log.debug("! 获取顶点数据长度失败")
-                # self.report({"ERROR"}, "获取顶点数据长度失败")
+                log.debug("! Failed to get vertex data length")
+                # self.report({"ERROR"}, "Failed to get vertex data length")
                 traceback.print_exc()
                 # return {"CANCELLED"}
                 break
-            # 解析顶点数据块
+            # Parse vertex data block
             read_vertices_temp = read_vertices(
                 self, vertices_data, mesh_matrices_number, mesh_byte_size
             )
-            # 判断是否读取失败
+            # Check for parse failure
             if read_vertices_temp is None:
-                log.debug("! 解析顶点数据失败")
+                log.debug("! Failed to parse vertex data")
                 # return mesh_obj
                 break
-            # 顶点数据, UV坐标数据, 切线数据
+            # Vertex data, UV data, tangents
             vertices_array, normals, uvs = read_vertices_temp
 
-            # 获取面数据块大小
+            # Get face data block size
             faces_data_size = struct.unpack(
                 "<I",
                 data[
@@ -262,14 +262,14 @@ def split_mesh(self, data):
                                   + 4
                 ],
             )[0]
-            log.debug("> 获取面数据块大小: %s", hex(faces_data_size))
+            log.debug("> Face block size: %s", hex(faces_data_size))
             if faces_data_size >= len(data):
                 log.debug(
-                    "! 获取面数据块失败,遇到还未识别的数据块！ 开始地址:%s 偏移地址: %s",
+                    "! Failed to get face block, encountered unknown block! start:%s offset:%s",
                     hex(data_start + 0x1D), hex(data_start + 0x1D + mesh_byte_size)
                 )
                 break
-            # 获取面数据块
+            # Get face data block
             faces_data_block = data[
                                data_start
                                + 0x1D
@@ -280,17 +280,17 @@ def split_mesh(self, data):
                                     + 4
                                     + faces_data_size
                                ]
-            log.debug("> 索引地址: %s", hex(data_start + 0x1d + mesh_byte_size + 4))
-            log.debug("> 获取面数据块: %s", hex(len(faces_data_block)))
-            # 解析面数据块
+            log.debug("> Index address: %s", hex(data_start + 0x1d + mesh_byte_size + 4))
+            log.debug("> Face data block length: %s", hex(len(faces_data_block)))
+            # Parse face data block
             faces_array = read_faces(self, faces_data_block, len(faces_data_block))
-            # 判断是否读取失败
+            # Check for parse failure
             if faces_array is None:
-                log.debug("! 解析面数据失败")
+                log.debug("! Failed to parse face data")
                 # return mesh_obj
                 break
 
-            # 向mesh_obj中添加数据
+            # Append data to mesh_obj
             mesh_obj.append(
                 {
                     "vertices": {
@@ -305,18 +305,18 @@ def split_mesh(self, data):
                 }
             )
 
-            # 结束位置,也是新的开始
+            # End position, also the new start
             data_start += 0x1D + mesh_byte_size + 4 + faces_data_size
             log.debug("> data_start: %s", hex(data_start))
 
-            # 读取剩余数据(着色器,贴图,动画等) -> 是否存在另一个物体, 另一个物体头部地址
+            # Read remaining data (shaders, textures, animation, etc.) -> check for next object header
             find_start = find_next_head(data, data_start)
             if find_start is None:
-                log.debug("! 未找到下一个物体头部地址, mesh_obj len: %s", hex(len(mesh_obj)))
+                log.debug("! Next object header not found, mesh_obj len: %s", hex(len(mesh_obj)))
                 break
             data_start = find_start
 
-            log.debug("完成获取下一个物体头部地址！！！！！！！！！")
+            log.debug("Finished getting next object header")
             # if not nextobj:
             #     log.debug("! 读取其他物体数据失败")
             #     # self.report({"ERROR"}, "读取其他物体数据失败")
@@ -326,15 +326,15 @@ def split_mesh(self, data):
             # # 修正数据起始位置
             # data_start = next_data_start
 
-            # 检查是否到达文件末尾
+            # Check if end of file reached
             if len(mesh_obj) >= mesh_obj[0]["vertices"]["mesh_obj_number"] - 1:
-                log.debug("<<< 数据到达尾部")
+                log.debug("<<< Reached end of data")
                 break
 
-        log.debug("返回 mesh_obj！！！")
+        log.debug("Returning mesh_obj")
         return mesh_obj
     except Exception as e:
-        log.debug("! 分割网格数据失败: %s", e)
+        log.debug("! Failed to split mesh data: %s", e)
         # self.report({"ERROR"}, f"分割网格数据失败: {e}")
         traceback.print_exc()
         # return {"CANCELLED"}
