@@ -9,148 +9,148 @@ from ..log import log
 
 
 class ImportSkelClass(bpy.types.Operator):
-    """导入自定义骨骼文件"""
+    """Import custom skeleton files."""
 
     bl_idname = "import.skel"
-    bl_label = "导入骨骼.skel"
+    bl_label = "Import skeleton .skel"
     bl_options = {"REGISTER", "UNDO"}
 
-    # 使用bpy.props顶义文件路径属性
+    # File path property
     filepath: bpy.props.StringProperty(
         subtype="FILE_PATH",
         default="",
     )  # type: ignore
-    # 文件扩展名过滤
+    # Extension filter
     filename_ext = ".skel"
     filter_glob: bpy.props.StringProperty(default="*.skel", options={"HIDDEN"})  # type: ignore
 
     def invoke(self, context, event):
-        # 设置文件过滤器为.skel后缀
+        # Filter for .skel files
         self.filter_glob = "*.skel;"
         context.window_manager.fileselect_add(self)
         return {"RUNNING_MODAL"}
 
     def execute(self, context):
-        """导入骨骼"""
+        """Import skeleton data"""
         try:
-            # 文件路径
+            # File path
             file_path = self.filepath
 
-            # 从文件路径中提取文件名
+            # Extract file name
             file_name = os.path.splitext(os.path.basename(file_path))[0]
 
-            # 骨骼名称和层级关系
+            # Bone names and hierarchy
             bones = []
-            # 骨骼变换数据
+            # Bone transform data
             transforms = []
 
-            # 读取骨骼信息
-            with open(file_path, "rb") as file:
-                # 验证文件是否是skel文件
+            # Read skeleton info
+                with open(file_path, "rb") as file:
+                # Validate the file
                 if not utils.validate_file(file):
-                    log.debug("无效的文件格式")
+                    log.debug("Invalid file format")
                     return {"CANCELLED"}
 
-                # 读取骨骼名称和层级关系
-                log.debug("读取骨骼名称和层级关系")
+                # Read bone names and hierarchy
+                log.debug("Reading bone names and hierarchy")
                 while True:
-                    # 获取当前文件位置
+                    # Get current file position
                     current_position = file.tell()
-                    # 读取骨骼信息
+                    # Read bone info
                     bone_info = utils.read_bone_info(file)
 
-                    # 如果读取失败，跳出循环
+                    # Break if read fails
                     if bone_info is None:
-                        log.debug("读取骨骼信息失败")
+                        log.debug("Failed to read bone info")
                         break
 
-                    # 将骨骼信息添加到列表中
+                    # Append bone info
                     name, level = bone_info
                     bones.append((name, level))
 
-                    # 检查是否到达骨骼名称部分的结尾
-                    # 获取当前文件位置
+                    # Check for end of name section
+                    # Get current file position
                     current_position = file.tell()
-                    # 获取下一个骨骼名称长度
+                    # Read next bone name length
                     next_name_length = struct.unpack("<I", file.read(4))[0]
-                    # 向尾部移动23字节(+前面的4字节)(一个数据块大小为28(0x1C)字节)
+                    # Skip 23 bytes (+4 previous) each block is 28 bytes
                     file.seek(23, 1)
-                    # 读取结束标记
+                    # Read end tag
                     end_tag = file.read(1).hex()
-                    # 将文件指针恢复到原来的位置
+                    # Restore file position
                     file.seek(current_position)
 
-                    log.debug("下文件名长度: %s 结束标记: %s", next_name_length, end_tag)
+                    log.debug("Next name length: %s end tag: %s", next_name_length, end_tag)
 
-                    # 检查是否到达骨骼名称部分的结尾
+                    # Check if end of name section reached
                     if next_name_length <= 0 and end_tag == "3f":
-                        log.debug("读取骨骼信息结束: %s", len(bones))
+                        log.debug("Finished reading bone info: %s", len(bones))
                         break
 
-                log.debug("读取骨骼变换数据")
-                log.debug("当前文件地址: %s", current_position)
-                # 读取骨骼变换数据
+                log.debug("Reading bone transforms")
+                log.debug("Current file offset: %s", current_position)
+                # Read bone transform data
                 bones_len = len(bones)
-                # 根据bones_len长度循环获取变换数据
+                # Iterate to read transform data
                 for i in range(bones_len):
                     log.debug(
-                        "%s 读取 %s 骨骼变换数据 Level: %s",
+                        "%s reading transform for %s level %s",
                         i + 1 ,bones[i][0],bones[i][1]
                     )
 
-                    # 读取变换数据
+                    # Read transform
                     transform = utils.read_bone_transform(file)
-                    # 如果读取失败，跳出循环
+                    # Stop loop on failure
                     if transform is None:
                         break
-                    # 将变换数据添加到列表中
+                    # Append transform
                     transforms.append(transform)
 
-                log.debug("读取骨骼变换数据结束: %s", len(transforms))
-                # 打印骨骼层级
+                log.debug("Finished reading bone transforms: %s", len(transforms))
+                # Print bone hierarchy
                 utils.print_hierarchy(bones)
 
-            # 创建骨架
-            log.debug("创建骨架")
-            # 创建骨架对象
+            # Create armature
+            log.debug("Creating armature")
+            # Create armature object
             armature = bpy.data.armatures.new(file_name)
             armature_obj = bpy.data.objects.new(file_name, armature)
 
-            # 显示名称
+            # Show names
             armature.show_names = True
-            # 显示轴
+            # Show axes
             armature.show_axes = True
             # armature.display_type = 'STICK'
 
-            # 设置对象变换
+            # Set object transforms
             # armature_obj.scale = (scale, scale, scale)
 
-            # 链接骨架对象到场景中
+            # Link armature object
             context.collection.objects.link(armature_obj)
-            # 激活骨架对象
+            # Activate armature object
             context.view_layer.objects.active = armature_obj
 
-            # 进入编辑模式
+            # Enter edit mode
             bpy.ops.object.mode_set(mode="EDIT")
 
-            # 创建骨骼
+            # Create bones
             utils.create_bone_chain(armature.edit_bones, bones, transforms)
 
-            # 添加骨骼约束
+            # Add bone constraints
             bpy.ops.object.mode_set(mode="POSE")
-            log.debug("添加骨骼约束")
+            log.debug("Adding bone constraints")
             utils.add_bone_constraints(armature_obj)
 
-            # 调整视图
+            # Adjust view
             bpy.ops.object.mode_set(mode="OBJECT")
-            # 选择骨架对象
+            # Select armature object
             bpy.ops.object.select_all(action="DESELECT")
             armature_obj.select_set(True)
             context.view_layer.objects.active = armature_obj
 
-            log.debug("成功导入 %s 个骨骼", len(bones))
+            log.debug("Successfully imported %s bones", len(bones))
             return {"FINISHED"}
 
         except Exception as e:
-            log.debug("导入过程中发生错误: %s", str(e))
+            log.debug("Error during import: %s", str(e))
             return {"CANCELLED"}

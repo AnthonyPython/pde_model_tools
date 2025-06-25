@@ -3,7 +3,7 @@ import struct
 
 
 def read_half_float(data, offset):
-    """读取半精度浮点数"""
+    """Read a half-precision floating point number."""
     try:
         value = struct.unpack('H', data[offset:offset + 2])[0]
         sign = (value >> 15) & 0x1
@@ -13,7 +13,7 @@ def read_half_float(data, offset):
         if exponent == 0:
             return ((-1) ** sign) * (2 ** -14) * (mantissa / 1024)
         elif exponent == 31:
-            return 0.0  # 简化处理特殊值
+            return 0.0  # simplified handling of special values
         else:
             return ((-1) ** sign) * (2 ** (exponent - 15)) * (1 + mantissa / 1024)
     except:

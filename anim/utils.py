@@ -17,9 +17,12 @@ def quat_to_eul(quat):
 def is_valid_group_name(name):
     """Validate that a vertex group name is Blender compatible."""
     if not name or not isinstance(name, str):
-        log.debug("!名称为空或不是字符串: %s", name)
+        log.warning("Group name is empty or not a string: %s", name)
         return False
     if re.match(r"^[a-zA-Z_][a-zA-Z0-9_]*$", name):
         return True
-    log.debug("!名称包含非法字符或以数字开头: %s", name)
+    log.warning(
+        "Group name contains invalid characters or starts with a digit: %s",
+        name,
+    )
     return False

@@ -8,7 +8,7 @@ from .mesh_prop.operator import ImportMeshPropClass
 from .mesh_wcm.operator import ImportMeshWCMClass
 from .skel.operator import ImportSkelClass
 
-# 类表
+# Class list
 classes = (
     ui.ImportPanel,
     ImportMeshPropClass,
@@ -19,14 +19,14 @@ classes = (
 )
 
 
-# 注册和注销函数
+# Registration helpers
 def register():
-    """注册类"""
+    """Register classes."""
     for cls in classes:
         bpy.utils.register_class(cls)
 
 
 def unregister():
-    """注销类"""
+    """Unregister classes."""
     for cls in reversed(classes):
         bpy.utils.unregister_class(cls)
