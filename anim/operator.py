@@ -117,7 +117,7 @@ class ImportAnimClass(bpy.types.Operator):
         # 当前顶点组数据结束的地址
         group_eoffset = 0
         # 第一个特征
-        frist_feature = 0
+        first_feature = 0
         # 当前文件大小，用作结束位置
         file_size = len(data)
         # 可能的结束位置
@@ -182,12 +182,12 @@ class ImportAnimClass(bpy.types.Operator):
                                                     + 8
                                ]  # 特征是8个字节
                 # 判断 是否和第一个特征一样
-                if frist_feature == 0:
+                if first_feature == 0:
                     if this_feature == 0:
                         log.debug("!特征不能为0: %s", this_feature.hex())
                         break
-                    frist_feature = this_feature
-                elif this_feature != this_feature:
+                    first_feature = this_feature
+                elif this_feature != first_feature:
                     log.debug("!特征不对: %s", this_feature.hex())
                     break
                 log.debug("特征: %s", this_feature.hex())
