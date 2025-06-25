@@ -45,7 +45,7 @@ class ImportSkelClass(bpy.types.Operator):
             transforms = []
 
             # Read skeleton info
-                with open(file_path, "rb") as file:
+            with open(file_path, "rb") as file:
                 # Validate the file
                 if not utils.validate_file(file):
                     log.debug("Invalid file format")
